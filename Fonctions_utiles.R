@@ -18,10 +18,7 @@ f <- function(x, t){
 
 #Calcul des points de discrétisation du modèle
 calcul_points_discretisation <- function(extremite_droite, extremite_gauche, delta_x){
-  #cat(Ar+Br, "\n");
-  #cat(Al+Bl, "\n");
   nb_points = (extremite_droite - extremite_gauche)/delta_x;
-  #cat("nb poitns : ", nb_points);
   vect_discr = c(extremite_gauche);
   x = extremite_gauche;
   
@@ -37,11 +34,8 @@ calcul_points_discretisation <- function(extremite_droite, extremite_gauche, del
 create_mat_tridiag <- function(delta_x, points_discr){
   
   delta_t = delta_x * delta_x;
-  #points_discr = calcul_points_discretisation(Ar+Br, Al+Al, delta_x);
-  #cat("length : ", length(points_discr), "\n")
   j = 1 + (sigma*sigma*delta_t)/(delta_x*delta_x);
   j_1 = -(sigma*sigma*delta_t)/(2*delta_x*delta_x);
-  #cat("j = ", j , " / ", "j_1 = ", j_1, "\n")
   matrix <- diag(j,length(points_discr), length(points_discr));
   for (i in 1:length(points_discr)-1){
     matrix[i,i+1] = j_1;

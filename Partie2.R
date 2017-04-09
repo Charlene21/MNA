@@ -8,32 +8,18 @@ delta = 0.1;
 lambda = 0.5;
 #alpha = 0;
 
-Bl = -0.4
-Br = 0.2
+Bl = -1
+Br = 1
 
-L = 40;
-R = 20;
+L = 100;
+R = 100;
 
+#fonction g
 g <- function(y){
   return (lambda * exp(-(y-mu)^2/(2*delta^2))/(delta*sqrt(2*pi)));
 }
 
-calcul_points_discretisation_sauts <- function(Ar, Al, delta_x){
-  #cat(Ar+Br, "\n");
-  #cat(Al+Bl, "\n");
-  nb_points = (Ar+Br - (Al+Bl))/delta_x;
-  #cat("nb poitns : ", nb_points);
-  vect_discr = c(Al+Bl);
-  x = Al+Bl;
-  
-  for (i in 1 : nb_points){
-    x = x + delta_x;
-    vect_discr = c(vect_discr, x);
-  }
-  
-  return(vect_discr);
-}
-
+#Calcul de la constante alpha
 calcul_alpha <- function(delta_x){
 
   sum = 0;
@@ -47,12 +33,13 @@ calcul_alpha <- function(delta_x){
   return (sum);
 }
 
-create_mat_sauts <- function(Ar, Al, delta_x){
+#Calcul de la matrice B multidiagonale
+create_mat_sauts <- function(delta_x, alpha, points_discr){
   
   delta_t = delta_x * delta_x;
-  alpha = calcul_alpha(delta_x);
+  
   #cat("alpha : ", alpha, "\n")
-  points_discr = calcul_points_discretisation_sauts(Ar, Al, delta_x);
+  
   j = 1 + ((sigma*sigma)/2 - r + alpha) * delta_x;
   #cat("j = ", j, "\n")
   j_1 = -((sigma*sigma)/2 - r + alpha) * delta_x;
@@ -61,21 +48,7 @@ create_mat_sauts <- function(Ar, Al, delta_x){
   for (i in 2:length(points_discr)){
     matrix[i,i-1] = j_1;
   }
-  
-  # compteur = -L;
-  # for (j in 0:(length(points_discr)-1)){
-  #   incr = 0;
-  #   compteur = compteur + 1;
-  #   for (k in (length(points_discr)-j):length(points_discr)){
-  #     incr = incr + 1;
-  #     
-  #     if(j==0 || j==length(points_discr)-1){
-  #       matrix[incr,k] = matrix[incr,k] + g((compteur + 0.5)*delta_x)*(delta_x/2);
-  #     } else {
-  #       matrix[incr,k] = matrix[incr,k] + (g((compteur + 0.5)*delta_x) + g((compteur + 1 + 0.5)*delta_x))*(delta_x/2) ;
-  #     }
-  #   }
-  # }g()
+
   
   compteur = 0;
   
@@ -135,57 +108,28 @@ create_mat_sauts <- function(Ar, Al, delta_x){
   return(matrix)
 }  
 
-create_mat_tridiag_sauts <- function(Ar, Al, delta_x){
-  
-  delta_t = delta_x * delta_x;
-  points_discr = calcul_points_discretisation_sauts(Ar, Al, delta_x);
-  #cat("length : ", length(points_discr), "\n")
-  j = 1 + (sigma*sigma*delta_t)/(delta_x*delta_x);
-  j_1 = -(sigma*sigma*delta_t)/(2*delta_x*delta_x);
-  #cat("j = ", j , " / ", "j_1 = ", j_1, "\n")
-  matrix <- diag(j,length(points_discr), length(points_discr));
-  for (i in 1:length(points_discr)-1){
-    matrix[i,i+1] = j_1;
-  }
-  
-  for (i in 2:length(points_discr)){
-    matrix[i,i-1] = j_1;
-  }
-  
-  return (matrix);
-}
 
-resol_syst_sauts <- function(Ar, Al, delta_x, X_1){
- # cat("Al : ", Al, "Ar : ", Ar)
-  A = create_mat_tridiag_sauts(Ar, Al, delta_x);
- # print(A)
-  #cat("taille de A : ", nrow(A), "/", ncol(A), "\n");
-  B = create_mat_sauts(Ar, Al, delta_x);
-  
-  #cat("taille de B : ", nrow(B), "/", ncol(B), "\n");
-  
-  #cat("taille de X_1 : ", length(X_1), "\n");
-  X = solve(A, B %*% X_1);
-  return(X);
-  
-}
 
-calcul_u_sauts <- function(Ar, Al, delta_x){
-  points = calcul_points_discretisation_sauts(Ar, Al, delta_x);
+
+
+calcul_u_sauts <- function(Ar, Al, delta_x, points){
+
  # cat("points_u :",  points, "/", length(points), "\n");
   uo = calculate_uo(points);
  # cat("uo :",  uo, "/", length(uo), "\n");
   #uo = rev(uo);
 
-  plot(points, uo, type='l');
+  #plot(points, uo, type='l');
   delta_t = delta_x * delta_x;
-  
+  alpha = calcul_alpha(delta_x);
   uprec = uo;
   t = 0;
+  A = create_mat_tridiag(delta_x, points);
+  B = create_mat_sauts(delta_x, alpha, points);
   while (t < T){
   
     cat("t = ", t, "\n")
-    ucour = resol_syst_sauts(Ar, Al, delta_x, uprec)
+    ucour = resol_syst(uprec, A, B)
     #cat("ucour :",  ucour, "/", length(uo), "\n");
     for (i in 1:length(points)){
     # cat("point : ", points[i], "\n", "Al : ", Al , "/", "Ar : ", Ar, "\n");
@@ -206,19 +150,20 @@ calcul_u_sauts <- function(Ar, Al, delta_x){
   return(ucour);
 }
 
-calcul_v <- function(Ar, Al, delta_x){
-  points = calcul_points_discretisation_sauts(Ar, Al, delta_x);
+calcul_v_sauts <- function(Ar, Al, delta_x){
+  points = calcul_points_discretisation(Ar+Br, Al+Bl, delta_x);
+
   #cat("points_v :",  points, "/", length(points), "\n");
-  uT = calcul_u_sauts(Ar, Al, delta_x)
+  uT = calcul_u_sauts(Ar, Al, delta_x, points)
   plot(points, uT, type="l");
   v0 = exp(-r*T) * uT;
   
-  vect = c();
-  for (i in 1:length(points)){
-    vect=c(vect, h(points[i]));
-  }
+  # vect = c();
+  # for (i in 1:length(points)){
+  #   vect=c(vect, h(points[i]));
+  # }
   
   plot (points, v0, type="l");
-  lines(vect, col="red")
+  #lines(vect, col="red")
   
 }

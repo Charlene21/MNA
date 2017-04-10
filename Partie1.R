@@ -12,8 +12,10 @@ alpha = 0;
 create_mat_bidiag <- function(delta_x, points_discr){
   
   delta_t = delta_x * delta_x;
-  j = 1 + ((sigma*sigma)/2 - r + alpha)*delta_x;
-  j_1 = -((sigma*sigma)/2 - r + alpha) * delta_x;
+
+  #Remplissage de la diagonale et de la sous diagonale
+  j = 1 + ((sigma*sigma)/2 - r + alpha)*(delta_t/delta_x);
+  j_1 = -((sigma*sigma)/2 - r + alpha) * (delta_t/delta_x);
   
   matrix <- diag(j,length(points_discr), length(points_discr));
   for (i in 2:length(points_discr)){
@@ -26,8 +28,8 @@ create_mat_bidiag <- function(delta_x, points_discr){
 
 #Calcul de u(x,T)
 calcul_u <- function(Ar, Al, delta_x, points){
+  
   uo = calculate_uo(points);
-  plot(points, uo, type='l');
   delta_t = delta_x * delta_x;
   A = create_mat_tridiag(delta_x, points);
   B = create_mat_bidiag(delta_x, points);
@@ -36,9 +38,11 @@ calcul_u <- function(Ar, Al, delta_x, points){
   t = 0;
   while (t < T){
     ucour = resol_syst(uprec, A, B)
+    
+    #Conditions aux limites
     ucour[1] = h(Al + r*t);
     ucour[length(ucour)] = h(Ar + r*t);
-    #cat("t : ", t, "\n")
+    
     t = t + delta_t;
     uprec = ucour;
   }
@@ -51,16 +55,20 @@ calcul_u <- function(Ar, Al, delta_x, points){
 
 #Calcul de V(S,0)
 calcul_v <- function(Ar, Al, delta_x){
+  
+  #Pour calculer le temps d'exécution
   time1<-Sys.time()
   points = calcul_points_discretisation(Ar, Al, delta_x);
   uT = calcul_u(Ar, Al, delta_x, points)
   v0 = exp(-r*T) * uT;
+  
   plot (points, v0, type="l", main="Visualisation de V(S,0)");
   
   time2<-Sys.time()
+  Tdiff= difftime(time2, time1)
   
-  Tdiff= difftime(time2, time1) 
-  cat("time : ", Tdiff, "\n")
+  #A decommenter pour afficher le temps de calcul
+  #cat("Temps de calcul : ", Tdiff, "\n")
 
 
 }
